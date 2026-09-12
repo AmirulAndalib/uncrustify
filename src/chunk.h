@@ -17,6 +17,7 @@
 #include "char_table.h"
 #include "language_names.h"
 #include "language_tools.h"
+#include "uncrustify.h"
 
 
 static constexpr int ANY_LEVEL = -1;
@@ -1062,16 +1063,18 @@ protected:
 
 
    // --------- Data members
-   E_Token         m_type;                  //! type of the chunk itself
-   E_Token         m_parentType;            //! type of the parent chunk usually E_Token::CT_NONE
-   size_t          m_origLine;              //! line number of chunk in input file
-   size_t          m_origCol;               //! column where chunk started in the input file, is always > 0
-   size_t          m_origColEnd;            //! column where chunk ended in the input file, is always > 1
-   size_t          m_origPrevSp;            //! whitespace before this token
-   size_t          m_column;                //! column of the chunk
-   size_t          m_columnIndent;          //! if 1st chunk on a line, set to the 'indent' column, which may
+   E_Token m_type;                          //! type of the chunk itself
+   E_Token m_parentType;                    //! type of the parent chunk usually E_Token::CT_NONE
+   size_t  m_origLine;                      //! line number of chunk in input file
+   size_t  m_origCol;                       //! column where chunk started in the input file, is always > 0
+   size_t  m_origColEnd;                    //! column where chunk ended in the input file, is always > 1
+   size_t  m_origPrevSp;                    //! whitespace before this token
+   size_t  m_column;                        //! column of the chunk
+   size_t  m_columnIndent;                  //! if 1st chunk on a line, set to the 'indent' column, which may
                                             //! be less than the real column used to indent with tabs
-   size_t          m_nlCount;               //! number of newlines in E_Token::CT_NEWLINE
+   size_t  m_nlCount;                       //! number of newlines in E_Token::CT_NEWLINE
+                                            //! the member is only useable by a token with a type E_Token::CT_NEWLINE
+                                            //! or E_Token::CT_WHITESPACE
    size_t          m_nlColumn;              //! column of the subsequent newline entries(all of them should have the same column)
    size_t          m_level;                 //! nest level in {, (, or [. Only to help vim command }
    size_t          m_braceLevel;            //! nest level in braces only
@@ -1266,6 +1269,13 @@ inline size_t Chunk::GetOrigLine() const
 inline void Chunk::SetOrigLine(size_t line)
 {
 #ifdef DEBUG
+   if (line == 0)
+   {
+      fprintf(stderr, "%s(%d): the input is %zu\n", __func__, __LINE__, line);
+      log_flush(true);
+      exit(EX_SOFTWARE);
+   }
+
    if (line > uncrustify::limits::TOO_BIG_VALUE)
    {
       fprintf(stderr, "%s(%d): the input parameter is too big %zu\n",
@@ -1406,7 +1416,31 @@ inline void Chunk::SetNlCount(size_t cnt)
       exit(EX_SOFTWARE);
    }
 #endif
+
+#ifdef DEBUG
+   E_Token tok = this->GetType();
+
+   if (  tok == E_Token::CT_NEWLINE
+      || tok == E_Token::CT_NL_CONT
+      || tok == E_Token::CT_COMMENT_MULTI
+      || tok == E_Token::CT_COMMENT_CPP
+      || tok == E_Token::CT_STRING_MULTI)
+   {
+      // it is allowed to set the value of m_nlCount for those token
+      m_nlCount = cnt;
+   }
+   else
+   {
+      // Issue #4550
+      // see also <uncrustify/documentation>/Chunk_NlCount.txt
+      fprintf(stderr, "%s(%d): it is not allowed to set the value of m_nlCount for this token CT_%s\n",
+              __func__, __LINE__, get_token_name(tok));
+      log_flush(true);
+      exit(EX_SOFTWARE);
+   }
+#else /* DEBUG */
    m_nlCount = cnt;
+#endif /* DEBUG */
 }
 
 

@@ -39,6 +39,7 @@ void setup_newline_add(Chunk *prev, Chunk *nl, Chunk const *next)
    nl->SetPpLevel(prev->GetPpLevel());
    nl->SetBraceLevel(prev->GetBraceLevel());
    nl->SetPpLevel(prev->GetPpLevel());
+   nl->SetType(E_Token::CT_NEWLINE);                            // Issue #4550-A:02
    nl->SetNlCount(1);
    nl->SetFlags((prev->GetFlags() & PCF_COPY_FLAGS) & ~PCF_IN_PREPROC);
    nl->SetOrigCol(prev->GetOrigColEnd());

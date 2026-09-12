@@ -572,6 +572,7 @@ static bool parse_comment(TokenContext &ctx, Chunk &pc)
          {
             pc.Text().append(ctx.get());
          }
+         pc.SetType(E_Token::CT_COMMENT_CPP);
          pc.SetNlCount(pc.GetNlCount() + 1);
          cpd.did_newline = true;
       }
@@ -1199,15 +1200,15 @@ static bool parse_string(TokenContext &ctx, Chunk &pc, size_t quote_idx, bool al
 
       if (ch == '\n')
       {
-         pc.SetNlCount(pc.GetNlCount() + 1);
          pc.SetType(E_Token::CT_STRING_MULTI);
+         pc.SetNlCount(pc.GetNlCount() + 1);
       }
       else if (  ch == '\r'
               && ctx.peek() != '\n')
       {
          pc.Text().append(ctx.get());
-         pc.SetNlCount(pc.GetNlCount() + 1);
          pc.SetType(E_Token::CT_STRING_MULTI);
+         pc.SetNlCount(pc.GetNlCount() + 1);
       }
 
       // if last char in prev loop was escaped the one in the current loop isn't
@@ -1366,8 +1367,11 @@ static bool parse_cs_string(TokenContext &ctx, Chunk &pc)
 
       if (ch == '\n')
       {
+         // Issue #4550-A:03
+         //pc.SetType(E_Token::CT_NEWLINE);
          pc.SetType(E_Token::CT_STRING_MULTI);
          pc.SetNlCount(pc.GetNlCount() + 1);
+         //pc.SetType(E_Token::CT_STRING_MULTI);
       }
       else if (ch == '\r')
       {
@@ -1561,8 +1565,8 @@ static bool parse_cr_string(TokenContext &ctx, Chunk &pc, size_t q_idx)
       if (ctx.peek() == '\n')
       {
          pc.Text().append(ctx.get());
-         pc.SetNlCount(pc.GetNlCount() + 1);
          pc.SetType(E_Token::CT_STRING_MULTI);
+         pc.SetNlCount(pc.GetNlCount() + 1);
       }
       else
       {
@@ -1842,7 +1846,7 @@ static bool parse_whitespace(TokenContext &ctx, Chunk &pc)
       case '\n':
       case '\r':
 
-         if (!nl_count)
+         if (nl_count == 0)
          {
             pc.SetOrigCol(lastcol);
          }
@@ -1852,7 +1856,7 @@ static bool parse_whitespace(TokenContext &ctx, Chunk &pc)
             // LF ending
             ++LE_COUNT(LF);
 
-            if (!nl_count)
+            if (nl_count == 0)
             {
                pc.SetOrigColEnd(lastcol + 1);
             }
@@ -1863,7 +1867,7 @@ static bool parse_whitespace(TokenContext &ctx, Chunk &pc)
             ++LE_COUNT(CRLF);
             ctx.get();
 
-            if (!nl_count)
+            if (nl_count == 0)
             {
                pc.SetOrigColEnd(lastcol + 2);
             }
@@ -1873,7 +1877,7 @@ static bool parse_whitespace(TokenContext &ctx, Chunk &pc)
             // CR ending
             ++LE_COUNT(CR);
 
-            if (!nl_count)
+            if (nl_count == 0)
             {
                pc.SetOrigColEnd(lastcol + 1);
             }
@@ -1898,8 +1902,17 @@ static bool parse_whitespace(TokenContext &ctx, Chunk &pc)
    if (ch != 0)
    {
       pc.Text().clear();
-      pc.SetType(nl_count ? E_Token::CT_NEWLINE : E_Token::CT_WHITESPACE);
-      pc.SetNlCount(nl_count);
+
+      if (nl_count > 0)
+      {
+         // Issue #4550-A:02
+         pc.SetType(E_Token::CT_NEWLINE);
+         pc.SetNlCount(nl_count);
+      }
+      else
+      {
+         pc.SetType(E_Token::CT_WHITESPACE);
+      }
       pc.SetAfterTab((ctx.c.last_ch == '\t'));
       return(true);
    }
@@ -1997,8 +2010,8 @@ static bool parse_off_newlines(TokenContext &ctx, Chunk &pc)
 
    if (nl_count > 0)
    {
-      pc.SetNlCount(nl_count);
       pc.SetType(E_Token::CT_NEWLINE);
+      pc.SetNlCount(nl_count);
       return(true);
    }
    return(false);
@@ -2028,9 +2041,10 @@ static bool parse_macro(TokenContext &ctx, Chunk &pc, const Chunk *prev_pc)
 
    while (ctx.more())
    {
-      size_t pk = ctx.peek(), pk1 = ctx.peek(1);
-      bool   nl = (  pk == '\n'
-                  || pk == '\r');
+      size_t pk  = ctx.peek();
+      size_t pk1 = ctx.peek(1);
+      bool   nl  = (  pk == '\n'
+                   || pk == '\r');
       bool   nl_cont = (  pk == '\\'             // 92
                        && (  pk1 == '\n'
                           || pk1 == '\r'));
@@ -2166,7 +2180,7 @@ static bool parse_next(TokenContext &ctx, Chunk &pc, const Chunk *prev_pc)
    pc.SetOrigLine(ctx.c.row);
    pc.SetOrigCol(ctx.c.col);
    pc.SetColumn(ctx.c.col);
-   pc.SetNlCount(0);
+   //pc.SetNlCount(0);                       // Issue #4550-A:01
    pc.SetFlags(PCF_NONE);
 
    // If it is turned off, we put everything except newlines into E_Token::CT_UNKNOWN
@@ -2281,6 +2295,7 @@ static bool parse_next(TokenContext &ctx, Chunk &pc, const Chunk *prev_pc)
    {
       // check for non-keyword identifiers such as @if @switch, etc
       // Vala also allows numeric identifiers if prefixed with '@'
+
       if (  ctx.peek() == '@'                          // 64
          && (  CharTable::IsKw1(ctx.peek(1))
             || (  language_is_set(lang_flag_e::LANG_VALA)
@@ -2459,8 +2474,8 @@ static bool parse_next(TokenContext &ctx, Chunk &pc, const Chunk *prev_pc)
          return(true);
       }
    }
-
    // Check for Vala string templates
+
    if (  language_is_set(lang_flag_e::LANG_VALA)
       && (ctx.peek() == '@'))            // 64
    {
@@ -2473,8 +2488,8 @@ static bool parse_next(TokenContext &ctx, Chunk &pc, const Chunk *prev_pc)
          return(true);
       }
    }
-
    // Check for Objective C literals
+
    if (  language_is_set(lang_flag_e::LANG_OC)
       && (ctx.peek() == '@'))            // 64
    {

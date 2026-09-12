@@ -68,7 +68,6 @@ void enum_cleanup()
                      comma.SetType(E_Token::CT_COMMA);
                      comma.SetOrigLine(prev->GetOrigLine());
                      comma.SetOrigCol(prev->GetOrigCol() + 1);
-                     comma.SetNlCount(0);
                      comma.SetPpLevel(0);
                      comma.SetFlags(PCF_NONE);
                      comma.Text() = ",";

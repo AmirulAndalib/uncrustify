@@ -59,8 +59,14 @@ void blank_line_set(Chunk *pc, const Option<unsigned> &opt)
    if (  (optval > 0)
       && (pc->GetNlCount() != optval))
    {
+      if (pc->IsNot(E_Token::CT_NEWLINE))      // Issue #4550
+      {
+         // look at the next newline
+         pc = pc->GetNextType(E_Token::CT_NEWLINE, pc->GetLevel());
+      }
       LOG_FMT(LBLANKD, "%s(%d): %s set line %zu to %u\n",
               __func__, __LINE__, opt.name(), pc->GetOrigLine(), optval);
+      pc->SetType(E_Token::CT_NEWLINE);
       pc->SetNlCount(optval);
       MARK_CHANGE();
    }
@@ -73,20 +79,6 @@ void do_blank_lines()
 
    for (Chunk *pc = Chunk::GetHead(); pc->IsNotNullChunk(); pc = pc->GetNext())
    {
-      if (pc->Is(E_Token::CT_NEWLINE))
-      {
-         LOG_FMT(LBLANKD, "%s(%d): orig line is %zu, orig col is %zu, <Newline>, nl is %zu\n",
-                 __func__, __LINE__, pc->GetOrigLine(), pc->GetOrigCol(), pc->GetNlCount());
-      }
-      else
-      {
-         char copy[1000];
-         LOG_FMT(LBLANKD, "%s(%d): orig line is %zu, orig col is %zu, text '%s', type is %s\n",
-                 __func__, __LINE__, pc->GetOrigLine(), pc->GetOrigCol(), pc->ElidedText(copy), get_token_name(pc->GetType()));
-      }
-      LOG_FMT(LBLANK, "%s(%d): new line count is %zu\n",
-              __func__, __LINE__, pc->GetNlCount());
-
       if (pc->IsNot(E_Token::CT_NEWLINE))
       {
          continue;
@@ -651,8 +643,6 @@ void do_blank_lines()
          LOG_FMT(LBLANK, "%s(%d): orig line is %zu, orig col is %zu, text is '%s', new line count is now %zu\n",
                  __func__, __LINE__, pc->GetOrigLine(), pc->GetOrigCol(), pc->GetLogText(), pc->GetNlCount());
       }
-      LOG_FMT(LBLANK, "%s(%d): orig line is %zu, orig col is %zu, text is '%s', end new line count is now %zu\n",
-              __func__, __LINE__, pc->GetOrigLine(), pc->GetOrigCol(), pc->GetLogText(), pc->GetNlCount());
    }
 } // do_blank_lines
 

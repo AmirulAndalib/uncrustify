@@ -24,6 +24,7 @@ void newline_end_newline(Chunk *br_close)
    {
       nl.SetOrigLine(br_close->GetOrigLine());
       nl.SetOrigCol(br_close->GetOrigCol());
+      nl.SetType(E_Token::CT_NEWLINE);
       nl.SetNlCount(1);
       nl.SetPpLevel(0);
       nl.SetFlags((br_close->GetFlags() & PCF_COPY_FLAGS) & ~PCF_IN_PREPROC);
