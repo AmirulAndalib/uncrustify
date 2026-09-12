@@ -1073,7 +1073,7 @@ protected:
    size_t  m_columnIndent;                  //! if 1st chunk on a line, set to the 'indent' column, which may
                                             //! be less than the real column used to indent with tabs
    size_t  m_nlCount;                       //! number of newlines in E_Token::CT_NEWLINE
-                                            //! the member is only useable by a token with a type E_Token::CT_NEWLINE
+                                            //! the member is only usable by a token with a type E_Token::CT_NEWLINE
                                             //! or E_Token::CT_WHITESPACE
    size_t          m_nlColumn;              //! column of the subsequent newline entries(all of them should have the same column)
    size_t          m_level;                 //! nest level in {, (, or [. Only to help vim command }

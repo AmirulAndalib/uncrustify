@@ -1,6 +1,6 @@
 Warning.
 
-Only useable by a token with a type
+Only usable by a token with a type
    E_Token::CT_NEWLINE
    E_Token::CT_NL_CONT
    E_Token::CT_COMMENT_MULTI
