@@ -206,7 +206,7 @@ static void list_the_frm(Chunk const *pc, const ParsingFrame &frm, int lineNumbe
 
 static void list_the_frm(Chunk const *pc, const ParsingFrame &frm, int lineNumber)
 {
-   LOG_FMT(LINDPC, "%s(%d): (%d)\n", __func__, __LINE__, lineNumber);
+   LOG_FMT(LINDPC, "%s(%d): (size is %zu), (%d)\n", __func__, __LINE__, frm.size(), lineNumber);
    LOG_FMT(LINDPC, "   -=[ pc orig line is %zu, orig col is %zu, text is '%s' ]=-, frm.size() is %zu\n",
            pc->GetOrigLine(), pc->GetOrigCol(), pc->GetLogText(), frm.size());
 
